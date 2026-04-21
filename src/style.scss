@@ -1,0 +1,32 @@
+@import "bootstrap/scss/functions";
+
+$dark-purple: #3E1767;
+$light-purple: #A25CFB;
+$dark-border: #121320;
+
+// 2. Custom Overrides (Example: changing the primary color)
+$primary: $dark-purple;
+$secondary: $light-purple;
+$dark: $dark-border;
+$font-family-base: Arial, Helvetica, sans-serif;
+
+// 3. Import the rest of Bootstrap
+@import "bootstrap/scss/variables";
+@import "bootstrap/scss/maps";
+@import "bootstrap/scss/mixins";
+@import "bootstrap/scss/root";
+
+// Optional: Import everything else at once
+@import "bootstrap/scss/bootstrap";
+
+.title{
+    text-align: center;
+}
+
+body{
+    vertical-align: middle;
+}
+
+#user-template{
+    display:none;
+}

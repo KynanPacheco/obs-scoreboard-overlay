@@ -1,82 +1,49 @@
-import './style.css'
-import "bootstrap/dist/css/bootstrap.min.css";
+import './style.scss'
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import tmi from "tmi.js";
 
 const params = new URLSearchParams(location.search);
-const channel = params.get("channel") || "mistahanman";
+const channel = params.get("channel") || "ultravioletriot";
+const goal = params.get("goal") || 10;
 
-function shuffleArray(array) {
-  let currentIndex = array.length, randomIndex;
+let participants = {};
+let participantsCount = 0;
 
-  // While there remain elements to shuffle.
-  while (currentIndex !== 0) {
-
-    // Pick a remaining element.
-    randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex--;
-
-    // And swap it with the current element.
-    [array[currentIndex], array[randomIndex]] = [
-      array[randomIndex], array[currentIndex]];
+function addUser(username){
+  if(username in participants){
+    return false;
   }
+  const scoreboard = document.getElementById("scoreboard");
+  const participantsBox = document.getElementById("participants")
+  const template = document.getElementById("user-template");
+  let newUser = template.cloneNode(true);
 
-  return array;
+  newUser.id = username;
+  let newUsername = newUser.getElementsByClassName("username");
+  newUsername[0].innerHTML = username;
+
+  template.after(newUser);
+
+  participants[username] = 0;
+  participantsCount++;
+  participantsBox.innerHTML = participantsCount;
+
+  return true;
 }
 
-async function fetchTrivia() {
-  const params = new URLSearchParams({
-    amount: 1,
-    type: "multiple"
-  });
-
-  const res = await fetch(`https://opentdb.com/api.php?${params}`);
-  const data = await res.json();
-
-  if (data.response_code !== 0) {
-    throw new Error("OpenTDB returned error code " + data.response_code);
+function addPoint(username){
+  if(username in participants){
+    participants[username]++;
+  } else {
+    addUser(username);
+    participants[username]++;
   }
 
-  return data.results[0];
-}
+  console.log(participants[username]);
 
-async function addQuestion(){
-  let triviaQuestion = await fetchTrivia();
-
-  const docRoot = document.getElementById("content");
-
-  const details = triviaQuestion["difficulty"] + " - " + triviaQuestion["category"];
-  let answers = triviaQuestion["incorrect_answers"];
-  answers.push(triviaQuestion["correct_answer"]);
-  answers = shuffleArray(answers);
-  let answer = answers.indexOf(triviaQuestion["correct_answer"]);
-
-  const q = document.createElement("h1");
-  const d = document.createElement("p");
-  const a = document.createElement("ul");
-  const questionContainer = document.createElement("div");
-
-  q.innerHTML = triviaQuestion["question"];
-  d.innerHTML = details
-
-  for(let i = 0; i < answers.length; i++){
-    const li = document.createElement("li");
-    li.innerHTML = answers[i];
-    a.append(li);
-  }
-
-  questionContainer.append(q);
-  questionContainer.append(d);
-  questionContainer.append(a);
-
-  docRoot.append(questionContainer);
-
-  return answer;
-}
-
-function removeQuestion(){
-  const docRoot = document.getElementById("content");
-  docRoot.replaceChildren();
+  const userRow = document.getElementById(username);
+  const userScore = userRow.getElementsByClassName("score");
+  userScore[0].innerHTML = participants[username];
 }
 
 const client = new tmi.Client({
@@ -88,6 +55,11 @@ client.connect().catch(console.error);
 
 client.on("connected", (addr, port) => {
   console.log("Connected to", addr, port);
+  const goalBox = document.getElementById("goal");
+  const channelBox = document.getElementById("channel");
+
+  goalBox.innerHTML = "First to " + goal + " wins!";
+  channelBox.innerHTML = "Connected Channel: " + channel;
 });
 
 client.on("message", (channel, tags, message, self) => {
@@ -95,36 +67,20 @@ client.on("message", (channel, tags, message, self) => {
 
   const isPrivileged = tags.badges?.moderator === "1" || tags.badges?.broadcaster === "1";
 
-  if (isPrivileged && message.includes("!q")){
-    console.log("A Moderator has triggered a question");
+  if (isPrivileged && message.includes("!point")){
+    let username = message.slice(7);
+    addPoint(username);
   }
 
-  let guess = -1;
-  if(message.includes("!a")){
-    switch(message[3]){
-      case "a":
-        guess = 0;
-        break;
-      case "b":
-        guess = 1;
-        break;
-      case "c":
-        guess = 2;
-        break;
-      case "d":
-        guess = 3;
-        break;
-      default:
-        console.log("Error, invalid selection");
-    }
-    console.log(tags.username + " guessed " + guess)
+  if (message.includes("!reset")){
+    window.location.reload();
+  }
+
+  if (message.includes("!join")){
+    addUser(tags.username);
   }
 });
 
 client.on("cheer", (channel, userstate, message) =>{
 
 });
-
-let quest = await addQuestion();
-
-console.log(quest);
